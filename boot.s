@@ -1,75 +1,100 @@
 .code16
-.globl _start
-_start:
-	mov $0x00, %ax
-	int $0x10
+.text
+	.globl init
+init:
+	xor %ax, %ax
+	mov %ax, %bx
+	mov %ax, %es
+	mov %ax, %ds
+	mov %ax, %ss
+	mov 0x7000, %sp
+	jmp _start
 
-	mov $msg, %si
-	xor %dx, %dx
-loop1:
-	mov (%si), %al
-	cmp $0x00, %al
-	je end1
-	mov $0x09, %ah
-	mov $0x00, %bh
-	mov $0x0f, %bl
-	mov $0x01, %cx
+disp:
+	push %ax
+	push %bx
+	mov $0x0001, %ax
 	int $0x10
-	inc %si
-	mov $0x02, %ah
-	inc %dl
+	mov $0x0001, %bx
+	mov $0x0b, %ah
 	int $0x10
-	jmp loop1
-
-end1:
-	mov %dl, var
-
-loop2:
-	mov $0x00, %ah
-	int $0x16
-	cmp $0x08, %al
-	je delete
-	cmp $0x1b, %al
-	je finish
-	mov $0x09, %ah
-	int $0x10
-	mov $0x02, %ah
-	inc %dl
-	int $0x10
-	jmp loop2
-delete:
-	cmp var, %dl
-	je loop2
-	mov $0x02, %ah
-	dec %dl
-	int $0x10
-	mov $0x09, %ah
-	mov $0x20, %al
-	int $0x10
-	jmp loop2
-
-
-finish:
-	mov $0x5301, %ax
-	xor %bx, %bx
-	int $0x15
-	mov $0x530e, %ax
-	xor %bx, %bx
-	mov $0x0102, %cx
-	int $0x15
-	mov $0x5307, %ax
-	xor %bx, %bx
-	inc %bx
-	mov $0x0003, %cx
-	int $0x15
+	pop %bx
+	pop %ax
 	ret
 
-var:
-	.byte
+print:
+	push %ax
+	push %bx
+	push %si
+	print_loop:
+		mov (%si), %al
+		cmp $0x00, %al
+		je print_ret
+		mov $0x0e, %ah
+		int $0x10
+		inc %si
+		jmp print_loop
+	print_ret:
+		pop %si
+		pop %bx
+		pop %ax
+		ret
 
-msg:
-	.ascii "input: "
+input:
+	push %ax
+	push %bx
+	push %si
+	input_loop:
+		mov $0x0000, %ax
+		int $0x16
+		mov $0x0e, %ah
+		cmp $0x0d, %al
+		je input_ret
+		cmp $0x08, %al
+		je input_delete
+		cmp $0x20, %al
+		jl input_loop
+		cmp $0x7e, %al
+		jg input_loop
+		mov %al, (%si)
+		inc %si
+		int $0x10
+		jmp input_loop
+	input_delete:
+		mov $0x03, %ah
+		int $0x10
+		cmp $msgl, %dx
+		jl input_loop
+		dec %si
+		movb $0x00, (%si)
+		mov $0x0e08, %ax
+		int $0x10
+		mov $0x0a20, %ax
+		mov $0x01, %cx
+		int $0x10
+		jmp input_loop
+	input_ret:
+		mov $0x0d, %al
+		int $0x10
+		mov $0x0a, %al
+		int $0x10
+		pop %si
+		pop %bx
+		pop %ax
+		ret
 
-_end:
-	.fill 510-(.-_start), 1, 0
-	.word 0xaa55
+_start:
+	call disp
+	mov $msg, %si
+	call print
+	mov $inp, %si
+	call input
+	call print
+	jmp .
+
+msg: .ascii "input> \0"
+msgl = .-msg
+inp: .byte
+
+.fill 510-(.-init), 1, 0
+.word 0xaa55
