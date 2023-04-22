@@ -58,6 +58,7 @@ input:
 		jg input_loop
 		mov %al, (%si)
 		inc %si
+		inc %di
 		int $0x10
 		jmp input_loop
 	input_delete:
@@ -66,6 +67,7 @@ input:
 		cmp $msgl, %dx
 		jl input_loop
 		dec %si
+		dec %di
 		movb $0x00, (%si)
 		mov $0x0e08, %ax
 		int $0x10
@@ -74,6 +76,7 @@ input:
 		int $0x10
 		jmp input_loop
 	input_ret:
+		movw $0x0d0a, (%si)
 		mov $0x0d, %al
 		int $0x10
 		mov $0x0a, %al
@@ -83,14 +86,32 @@ input:
 		pop %ax
 		ret
 
+clear:
+	push %si
+	push %di
+	clear_loop:
+		cmpb $0x00, (%si)
+		je clear_ret
+		movb $0x00, (%si)
+		dec %di
+		inc %si
+		jmp clear_loop
+	clear_ret:
+		pop %di
+		pop %si
+		ret
+
 _start:
 	call disp
-	mov $msg, %si
-	call print
-	mov $inp, %si
-	call input
-	call print
-	jmp .
+	loop:
+		mov $msg, %si
+		call print
+		mov $inp, %si
+		mov $0x00, %di
+		call input
+		call print
+		call clear
+		jmp loop
 
 msg: .ascii "input> \0"
 msgl = .-msg
