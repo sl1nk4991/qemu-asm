@@ -53,7 +53,7 @@ input:
 		int $0x16
 		mov $0x0e, %ah
 		cmp $0x0d, %al
-		je input_ret
+		je _input_ret
 		cmp $0x08, %al
 		je input_delete
 		cmp $0x20, %al
@@ -79,11 +79,11 @@ input:
 		mov $0x01, %cx
 		int $0x10
 		jmp input_loop
-	input_ret:
-		cmp $0x00, %di
-		je _input_ret
-		movw $0x0d0a, (%si)
 	_input_ret:
+		cmp $0x00, %di
+		je input_ret
+		movw $0x0d0a, (%si)
+	input_ret:
 		mov $0x0d, %al
 		int $0x10
 		mov $0x0a, %al
@@ -95,16 +95,13 @@ input:
 
 clear:
 	push %si
-	push %di
 	clear_loop:
 		cmpb $0x00, (%si)
 		je clear_ret
 		movb $0x00, (%si)
-		dec %di
 		inc %si
 		jmp clear_loop
 	clear_ret:
-		pop %di
 		pop %si
 		ret
 
