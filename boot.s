@@ -2,12 +2,16 @@
 .text
 	.globl init
 init:
+	sti
 	xor %ax, %ax
 	mov %ax, %bx
+	mov %ax, %cx
+	mov %ax, %dx
 	mov %ax, %es
 	mov %ax, %ds
 	mov %ax, %ss
 	mov 0x7000, %sp
+	cli
 	jmp _start
 
 disp:
